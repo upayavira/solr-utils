@@ -1,4 +1,4 @@
-FROM solr:6.0.0
+FROM solr:6.1.0
 
 USER root
 RUN mkdir /solr-libs /solr && \
