@@ -1,8 +1,10 @@
 #!/bin/sh
 
-if [ -z $VERSION ]; then
-  VERSION=latest
-fi
+VERSION=${VERSION-latest}
+REGISTRY=${REGISTRY/-}
 
 mvn package
-docker build -t docker.odoko.org/solr:${VERSION} .
+docker build -t ${REGISTRY}solr:${VERSION} .
+if [ "$1" = "push" ]; then
+  docker push docker.odoko.org/solr:${VERSION}
+fi
