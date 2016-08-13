@@ -1,9 +1,12 @@
 #!/bin/bash
 
 VERSION=${VERSION-latest}
-REGISTRY=${REGISTRY/-""}
 
-echo "Using registry $REGISTRY"
+if [ -n "$REGISTRY" ]; then
+  REGISTRY="${REGISTRY}/"
+fi
+
+echo "Using registry -$REGISTRY-"
 mvn package
 docker build -t ${REGISTRY}solr:${VERSION} .
 if [ "$1" = "push" ]; then
