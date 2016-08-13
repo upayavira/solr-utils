@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VERSION=${VERSION-latest}
-REGISTRY=${REGISTRY/-}
+REGISTRY=${REGISTRY/-""}
 
 echo "Using registry $REGISTRY"
 mvn package
