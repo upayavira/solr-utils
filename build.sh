@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 VERSION=${VERSION-latest}
 REGISTRY=${REGISTRY/-""}
