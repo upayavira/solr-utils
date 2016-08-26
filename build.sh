@@ -1,15 +1,19 @@
 #!/bin/bash
 
-VERSION=${VERSION-latest}
-
-if [ -n "$REGISTRY" ]; then
-  REGISTRY="${REGISTRY}/"
+if [ -z $VERSION ]; then
+  if [ "$1" = "push" ]; then
+    VERSION=1.0.$BUILD_NUMBER
+  else
+    VERSION=latest
+  fi
 fi
 
-echo "Using registry -$REGISTRY-"
+REGISTRY=${REGISTRY:docker.odoko.org}
+
 mvn package
-docker build -t ${REGISTRY}solr:${VERSION} .
+docker build -t solr:${VERSION} .
 if [ "$1" = "push" ]; then
   echo "Pushing..."
+  docker tag solr:${VERSION} ${REGISTRY}/solr:${VERSION}
   docker push ${REGISTRY}solr:${VERSION}
 fi
