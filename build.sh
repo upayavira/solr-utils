@@ -15,5 +15,5 @@ docker build -t solr:${VERSION} .
 if [ "$1" = "push" ]; then
   echo "Pushing..."
   docker tag solr:${VERSION} ${REGISTRY}/solr:${VERSION}
-  docker push ${REGISTRY}solr:${VERSION}
+  docker push ${REGISTRY}/solr:${VERSION}
 fi
