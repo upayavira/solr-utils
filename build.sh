@@ -8,7 +8,7 @@ if [ -z $VERSION ]; then
   fi
 fi
 
-REGISTRY=${REGISTRY:docker.odoko.org}
+REGISTRY=${REGISTRY-"docker.odoko.org"}
 
 mvn package
 docker build -t solr:${VERSION} .
