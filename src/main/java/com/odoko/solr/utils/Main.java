@@ -135,6 +135,7 @@ public class Main {
       if (System.getenv("CHROOT")==null) {
         chroot = "/solr";
       }
+      if (wait) waitForQuorum(zookeeperHost, zookeeperPort, chroot);
       addChroot();
     } else if ("upload-solrxml".equals(cmd)) {
       String solrXmlSourcePath = System.getenv("SOLR_XML");
@@ -152,6 +153,51 @@ public class Main {
   }
 
  
+  private void waitForQuorum(String zookeeper, String zkPort, String zkChroot) throws InterruptedException, NamingException {
+    List<String> zkHosts = new ArrayList<String>();
+    if (zookeeper.contains(",")) {
+      String[] hosts = StringUtils.split(zookeeper, ",");
+      for (String host : hosts) {
+        zkHosts.add(host + ":" + zkPort + zkChroot);
+      }
+    } else {
+      Hashtable<String,String> env = new Hashtable<String,String>();
+      env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
+      InitialDirContext context = new InitialDirContext(env);
+      Attribute records = null;
+      try {
+        Attributes lookup = context.getAttributes(zookeeper, new String[] { "A" });
+        records = lookup.get("A");
+      } catch (NameNotFoundException e) {
+        records = null;
+      }
+      if (records == null || records.size()==1) {
+        zkHosts.add(zookeeper + ":" + zkPort + zkChroot);
+      } else {
+          for (int i = 0; i < records.size(); i++) {
+            String zkString = ((String)records.get(i)) + ":" + zkPort + zkChroot;
+            zkHosts.add(zkString);
+        }
+      }
+    }
+    while (true) {
+      boolean allAvailable = true;
+      for (String zkString : zkHosts) {
+        try {
+          zookeeperConnect(zkString);
+        } catch (IOException|InterruptedException e) {
+          allAvailable = false;
+          break;
+        }
+      }
+      if (allAvailable) {
+        break;
+      } else {
+        Thread.sleep(5000);
+      }
+    }
+  }
+    
   private void waitForPath(String zkPath) throws InterruptedException {
     while (true) {
       try {
