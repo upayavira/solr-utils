@@ -1,10 +1,12 @@
 package com.odoko.solr.utils;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -191,16 +193,20 @@ public class Main {
   }
 
   private String getZooKeeperStatus(String zkHost, String zkPort) throws NumberFormatException {
+    Socket s=null;
     try {
-      Socket s = new Socket(zkHost, Integer.parseInt(zkPort));
-      PrintWriter pw = new PrintWriter(s.getOutputStream());
-      pw.println("srvr");
-      pw.close();
+      debug("Connecting to %s:%s", zkHost, Integer.parseInt(zkPort));
+      s = new Socket(zkHost, Integer.parseInt(zkPort));
+      s.setSoTimeout(10000);
+      BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
+      bw.write("srvr\n");
+      bw.flush();
       BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
       String line;
       while ((line = reader.readLine()) != null) {
         if (line.startsWith("Mode:")) {
           String mode = line.substring("Mode: ".length());
+          s.close();
           return mode;
         }
       }
