@@ -1,7 +1,13 @@
 package com.odoko.solr.utils;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -85,8 +91,11 @@ public class Main {
     } else {
       zookeeper = resolveZookeeperString(zookeeperHost, zookeeperPort, chroot);
     }
+    
     debug("Received ZOOKEEPER=%s, ZOOKEEPER_PORT=%s, CHROOT=%s, Using ZOOKEEPER=%s", zookeeperHost, zookeeperPort, chroot, zookeeper);
     
+    if (wait) waitForQuorum(zookeeperHost, zookeeperPort);
+
     solr = new CloudSolrClient(zookeeper);
 
     if ("upload".equals(cmd)) {
@@ -135,7 +144,6 @@ public class Main {
       if (System.getenv("CHROOT")==null) {
         chroot = "/solr";
       }
-      if (wait) waitForQuorum(zookeeperHost, zookeeperPort, chroot);
       addChroot();
     } else if ("upload-solrxml".equals(cmd)) {
       String solrXmlSourcePath = System.getenv("SOLR_XML");
@@ -152,13 +160,12 @@ public class Main {
     solr.close();
   }
 
- 
-  private void waitForQuorum(String zookeeper, String zkPort, String zkChroot) throws InterruptedException, NamingException {
+  private List<String> getZookeeperHosts(String zookeeper) throws InterruptedException, NamingException {
     List<String> zkHosts = new ArrayList<String>();
     if (zookeeper.contains(",")) {
       String[] hosts = StringUtils.split(zookeeper, ",");
       for (String host : hosts) {
-        zkHosts.add(host + ":" + zkPort + zkChroot);
+        zkHosts.add(host);
       }
     } else {
       Hashtable<String,String> env = new Hashtable<String,String>();
@@ -172,28 +179,62 @@ public class Main {
         records = null;
       }
       if (records == null || records.size()==1) {
-        zkHosts.add(zookeeper + ":" + zkPort + zkChroot);
+        zkHosts.add(zookeeper);
       } else {
           for (int i = 0; i < records.size(); i++) {
-            String zkString = ((String)records.get(i)) + ":" + zkPort + zkChroot;
+            String zkString = ((String)records.get(i));
             zkHosts.add(zkString);
         }
       }
     }
-    while (true) {
-      boolean allAvailable = true;
-      for (String zkString : zkHosts) {
-        try {
-          zookeeperConnect(zkString);
-        } catch (IOException|InterruptedException e) {
-          allAvailable = false;
-          break;
+    return zkHosts;
+  }
+
+  private String getZooKeeperStatus(String zkHost, String zkPort) throws NumberFormatException {
+    try {
+      Socket s = new Socket(zkHost, Integer.parseInt(zkPort));
+      PrintWriter pw = new PrintWriter(s.getOutputStream());
+      pw.println("srvr");
+      pw.close();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.startsWith("Mode:")) {
+          String mode = line.substring("Mode: ".length());
+          return mode;
         }
       }
-      if (allAvailable) {
-        break;
+    } catch (IOException e) {
+      debug("Caught exception " + e.getMessage());
+      return "missing";
+    }
+    return "missing";
+  }
+  
+  private void waitForQuorum(String zookeeper, String zkPort) throws InterruptedException, NamingException {
+    List<String> zkHosts = getZookeeperHosts(zookeeper);
+    boolean isSingle = zkHosts.size() == 1;
+    while (true) {
+      if (isSingle) {
+        if (getZooKeeperStatus(zkHosts.get(0), zkPort).equals("standalone")) {
+          return;
+        }
       } else {
-        Thread.sleep(5000);
+        int activeCount = 0;
+        for (String zkHost : zkHosts) {
+          String status = getZooKeeperStatus(zkHost, zkPort);
+          if (status.equals("leader") ||
+              status.equals("observer") ||
+              status.equals("follower")) {
+            activeCount++;
+          }
+        }
+        if (activeCount == zkHosts.size()) {
+          return;
+        } else {
+          debug("%s out of %s ZooKeeper hosts active. Waiting", activeCount, zkHosts.size());
+          Thread.sleep(5000);
+        }
       }
     }
   }
@@ -398,7 +439,7 @@ public class Main {
     System.err.println(message);
   }
   
-  private static void debug(String message, String... args) {
+  private static void debug(String message, Object... args) {
     System.err.println(String.format(message, (Object[])args));
   }
   
