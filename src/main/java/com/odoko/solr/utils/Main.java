@@ -250,13 +250,15 @@ public class Main {
     while (true) {
       try {
         ZooKeeper keeper = zookeeperConnect(zookeeper);
-        while (keeper.exists(zkPath, false) == null) {
-          debug("Waiting for %s to be created", zkPath);
-          sleep(1);
+        if (keeper.exists(zkPath, false) != null) {
+          debug("%s found", zkPath);
+          return;
         }
-        break;
+        debug("Waiting for %s to be created", zkPath);
+        Thread.sleep(3000);
       } catch (KeeperException|IOException e) {
         debug(e.getMessage());
+        Thread.sleep(3000); 
       }
     } 
   }
