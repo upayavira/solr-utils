@@ -251,10 +251,10 @@ public class Main {
       try {
         ZooKeeper keeper = zookeeperConnect(zookeeper);
         if (keeper.exists(zkPath, false) != null) {
-          debug("%s found", zkPath);
+          debug("%s found in %s", zkPath, zookeeper);
           return;
         }
-        debug("Waiting for %s to be created", zkPath);
+        debug("Waiting for %s to be created in %s", zkPath, zookeeper);
         Thread.sleep(3000);
       } catch (KeeperException|IOException e) {
         debug(e.getMessage());
