@@ -154,6 +154,7 @@ public class Main {
       }
       uploadSolrXml(solrXmlSourcePath);
     } else if ("resolve".equals(cmd)) {
+      waitForPath("/solr.xml");
       System.out.println(zookeeper);
     } else {
       System.out.printf("Unknown command: %s\n", cmd);
