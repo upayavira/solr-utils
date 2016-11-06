@@ -237,6 +237,7 @@ public class Main {
           }
         }
         if (activeCount == zkHosts.size()) {
+          debug("%s out of %s ZooKeeper hosts active. Moving on", activeCount, zkHosts.size());
           return;
         } else {
           debug("%s out of %s ZooKeeper hosts active. Waiting", activeCount, zkHosts.size());
@@ -247,6 +248,7 @@ public class Main {
   }
     
   private void waitForPath(String zkPath) throws InterruptedException {
+    debug("Looking for %s in Zookeeper: %s", zkPath, zookeeper);
     while (true) {
       try {
         ZooKeeper keeper = zookeeperConnect(zookeeper);
@@ -268,7 +270,7 @@ public class Main {
     FileSystem fs = FileSystems.getDefault();
     Path configPath = fs.getPath(configDir);
     solr.uploadConfig(configPath, configName);
-    System.out.println("config uploaded");
+    debug("config uploaded");
   }
 
   private void createCollection(String collection, String configName) throws IOException, SolrServerException, InterruptedException, KeeperException {
