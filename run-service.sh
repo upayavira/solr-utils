@@ -33,7 +33,7 @@ if [ "$ACTION" = "run" ]; then
   echo "Starting Solr..."
   /opt/solr/bin/solr -c -z ${ZOOKEEPER} -f -s /solr -h ${NODENAME}
 else
-echo "Connecting to Solr via ${ZOOKEEPER}"
+  echo "Connecting to Solr via ${ZOOKEEPER}"
   echo "Executing utility with ${ACTION}"
   java -jar /solr-libs/solr-utils.jar
 fi
